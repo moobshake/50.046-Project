@@ -1,5 +1,6 @@
 import climage, os, sys
 import boto3
+import json
 
 adbucketname = 'iot-fastgame-proj-ads'
 viewerbucketname = 'iot-fastgame-proj-viewers'
@@ -8,6 +9,7 @@ viewerbucketname = 'iot-fastgame-proj-viewers'
 s3 = boto3.client("s3")
 s3buckets = boto3.resource("s3")
 adsbucket = s3buckets.Bucket(adbucketname)
+downloadpath = "downloads/"
 
 #to download, <bucket, obj name, file path to dl to>
 # s3.download_file(
@@ -24,17 +26,27 @@ adsbucket = s3buckets.Bucket(adbucketname)
 
 def download_images(filter='all'):
     object_summary_iterator = adsbucket.objects.all()
-    for i in object_summary_iterator:
+    tosave=[]
+    for i in object_summary_iterator: #iterate thru all objs
         print(i.key)
         object = s3buckets.Object(adbucketname,i.key)
         try:
             objtopics = object.metadata['topics']
             objtopiclist = [x.strip() for x in objtopics.split(',')]
             print(objtopiclist)
-            #if filter == 'all':
+            #maybe can check if downloaded alr
+            if filter == 'all':
+                s3.download_file(adbucketname,i.key,downloadpath+i.key)
+            elif filter in objtopiclist:
+                s3.download_file(adbucketname,i.key,downloadpath+i.key)
 
+            tofile={"name":i.key,"tags":objtopiclist}
+            tosave.append(tofile)
         except:
             pass
+
+    with open("tags.json", "w") as outfile:
+        json.dump(tosave, outfile)
 
 def display(image_name):
     image_folder = os.path.abspath("images")
@@ -42,5 +54,5 @@ def display(image_name):
     print(output)
 
 
-
+download_images()
 display("mario.jpg")
