@@ -1,1 +1,4 @@
-distutils
+boto3
+climage
+picamera
+gpiozero
