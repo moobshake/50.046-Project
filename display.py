@@ -1,5 +1,4 @@
-import climage, os, sys
+import subprocess
 
-def display(image_name, image_folder):
-    output = climage.convert(os.path.join(image_folder, image_name), is_unicode=True, is_256color=True)
-    print(output)
+def display(image_folder, image_name):
+    return subprocess.Popen(["feh", "--hide-pointer", "-x", "-q", "-B", "black", "-g", "-fullscreen", "-y", "1280x800", image_folder + image_name])

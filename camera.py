@@ -6,7 +6,6 @@ import sys
 
 class Camera:
     def __init__(self, path):
-        print("Camera initialising...")
         self.camera = PiCamera()
         self.path = path
         try:
@@ -19,7 +18,7 @@ class Camera:
     def capture(self, imageName):
         try:
             print("Starting Capture...")
-            self.camera.capture(self.path + imageName + ".png")
+            self.camera.capture(self.path + imageName)
             print("Capture success")
         except error:
             print("Capture failed with error: ", error)
