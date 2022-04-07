@@ -21,7 +21,6 @@ def download_images(adbucketname, download_path ,filter='all'):
     s3buckets = boto3.resource("s3")
     adsbucket = s3buckets.Bucket(adbucketname)
 
-
     object_summary_iterator = adsbucket.objects.all()
     tosave=[]
     for i in object_summary_iterator: #iterate thru all objs
@@ -33,14 +32,35 @@ def download_images(adbucketname, download_path ,filter='all'):
             print(objtopiclist)
             #maybe can check if downloaded alr
             if filter == 'all':
-                s3.download_file(adbucketname,i.key,downloadpath+i.key)
+                s3.download_file(adbucketname,i.key,download_path+i.key)
             elif filter in objtopiclist:
-                s3.download_file(adbucketname,i.key,downloadpath+i.key)
+                s3.download_file(adbucketname,i.key,download_path+i.key)
 
             tofile={"name":i.key,"tags":objtopiclist}
             tosave.append(tofile)
         except:
             pass
 
+    with open("tags.json", "w") as outfile:
+        json.dump(tosave, outfile)
+
+
+def download_image(adbucketname, download_path, img_name):
+    s3 = boto3.client("s3")
+    s3buckets = boto3.resource("s3")
+    s3.download_file(adbucketname,img_name,download_path+img_name)
+
+    f = open("tags.json") 
+    tosave = json.load(f)
+    print(tosave)
+    object = s3buckets.Object(adbucketname,img_name)
+    try:
+        objtopics = object.metadata['topics']
+        objtopiclist = [x.strip() for x in objtopics.split(',')]
+        tofile={"name":img_name,"tags":objtopiclist}
+        tosave.append(tofile)
+    except:
+            pass
+    
     with open("tags.json", "w") as outfile:
         json.dump(tosave, outfile)
