@@ -29,4 +29,4 @@ fi
 
 # run pub/sub sample app using certificates downloaded in package
 printf "\nRunning pub/sub sample application...\n"
-python aws-iot-device-sdk-python/samples/basicPubSub/basicPubSub.py -e azwea5zu3qfbc-ats.iot.ap-southeast-1.amazonaws.com -r root-CA.crt -c iot-fastgame-rpi.cert.pem -k iot-fastgame-rpi.private.key
+python aws-iot-device-sdk-python/samples/basicPubSub/basicPubSub.py -e a2pxoxfco87kve-ats.iot.ap-southeast-1.amazonaws.com -r root-CA.crt -c cciot-proj-rpi.cert.pem -k cciot-proj-rpi.private.key

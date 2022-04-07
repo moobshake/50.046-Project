@@ -7,6 +7,7 @@ import sys
 class Camera:
     def __init__(self, path):
         self.camera = PiCamera()
+        self.camera.resolution = (1280, 720)
         self.path = path
         try:
             os.mkdir(path)
