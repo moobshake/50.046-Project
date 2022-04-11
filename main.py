@@ -1,3 +1,4 @@
+from numpy import False_
 import camera
 import subprocess
 import awsyy
@@ -9,6 +10,8 @@ from awsiot import mqtt_connection_builder
 import time as t
 import json
 import ast
+from decimal import Decimal
+import os
 
 # Define important paths #############################################################################################
 CONST_IMAGE_PATH = "./images/"
@@ -30,6 +33,25 @@ VIEWERDEMOS_TOPIC = "cciot-fastgame/viewerdemos"
 ADSUPLOAD_TOPIC = "cciot-fastgame/aduploads"
 ########################################################################################################################
 
+# DynamoDB #####################################################################################################
+def put_viewcount(filename, dynamodb=None):
+    if not dynamodb:
+         dynamodb = boto3.resource('dynamodb')
+
+    table = dynamodb.Table('viewerCount_byAds')
+    response = table.update_item(
+        Key={
+            'advertisement-name': filename
+        },
+        UpdateExpression="set viewCount = viewCount + :val",
+        ExpressionAttributeValues={
+            ':val': 1
+        },
+        ReturnValues="UPDATED_NEW"
+    )
+    return response
+########################################################################################################################
+
 # Callback when the subscribed topic receives a message ###############################################################
 def on_message_received_viewerdemos(topic, payload, dup, qos, retain, **kwargs):
     print("Received message from topic '{}': {}".format(topic, payload.decode()))
@@ -38,12 +60,14 @@ def on_message_received_viewerdemos(topic, payload, dup, qos, retain, **kwargs):
     f = open("tags.json") 
     adtags = json.load(f)
     with open(CONST_IMAGE_DISPLAY_FILE, "w") as outfile:
+        outfile.write("")
+    with open(CONST_IMAGE_DISPLAY_FILE, "w") as outfile:
         for ad in adtags:
-            toshow = True
+            inside = False
             for tag in ad["tags"]:
-                if tag not in viewerDemos_list:
-                    toshow = False
-            if toshow:
+                if tag in viewerDemos_list:
+                    inside = True
+            if inside:
                 outfile.write(ad["name"] + "\n")
 
 # Callback when the subscribed topic receives a message ###############################################################
@@ -104,6 +128,10 @@ subscribe_future, packet_id = mqtt_connection.subscribe(
     callback=on_message_received_adsupload)
 ########################################################################################################################
 
+# Publish for view count ###############################################################
+mqttclient = boto3.client('iot-data')
+########################################################################################################################
+
 # Start of SUPERLOOP ###############################################################
 image = display.display(CONST_IMAGE_PATH, CONST_STANDBY_IMAGE)
 
@@ -127,17 +155,27 @@ while True:
     advert_name = f.readlines()
 
     print("Displaying advertisement...")
-    # Display the image
-    for i in advert_name:
-        if i != "": 
-            i = i.strip("\n")
-            image = display.display(CONST_ADVERT_PATH, i)
-            # image = display.display(CONST_IMAGE_PATH, CONST_CAMERA_CAPTURE)
+
+    if os.stat("file").st_size == 0:
+        print("No recognized tags!")
+        mage = display.display(CONST_ADVERT_PATH, "mcdonalds.png")
+        put_viewcount("mcdonalds.png")
+        t.sleep(5)
+        image.kill()
+    else:
+        # Display the image
+        for i in advert_name:
+            if i != "": 
+                i = i.strip("\n")
+                image = display.display(CONST_ADVERT_PATH, i)
+                put_viewcount(i)
+                t.sleep(5)
+                image.kill()
+                # image = display.display(CONST_IMAGE_PATH, CONST_CAMERA_CAPTURE)
  
     pir.wait_for_no_motion()
     # if no motion, then kill the image
     image.kill()
     image = display.display(CONST_IMAGE_PATH, CONST_STANDBY_IMAGE)
     print("User left, display will go into standby to save power...")
-
 ########################################################################################################################
