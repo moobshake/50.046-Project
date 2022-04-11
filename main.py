@@ -33,6 +33,9 @@ VIEWERDEMOS_TOPIC = "cciot-fastgame/viewerdemos"
 ADSUPLOAD_TOPIC = "cciot-fastgame/aduploads"
 ########################################################################################################################
 
+####
+GLOBAL_TIMEOUT = False
+####
 # DynamoDB #####################################################################################################
 def put_viewcount(filename, dynamodb=None):
     if not dynamodb:
@@ -54,21 +57,25 @@ def put_viewcount(filename, dynamodb=None):
 
 # Callback when the subscribed topic receives a message ###############################################################
 def on_message_received_viewerdemos(topic, payload, dup, qos, retain, **kwargs):
+    print("Got tags from S3 based on Reckognition")
     print("Received message from topic '{}': {}".format(topic, payload.decode()))
     viewerDemos_list = ast.literal_eval(payload.decode())
     print(viewerDemos_list)
     f = open("tags.json") 
     adtags = json.load(f)
     with open(CONST_IMAGE_DISPLAY_FILE, "w") as outfile:
-        outfile.write("")
-    with open(CONST_IMAGE_DISPLAY_FILE, "w") as outfile:
-        for ad in adtags:
-            inside = False
-            for tag in ad["tags"]:
-                if tag in viewerDemos_list:
-                    inside = True
-            if inside:
-                outfile.write(ad["name"] + "\n")
+        if "Default" in viewerDemos_list:
+                outfile.write("mcdonalds.png" + "\n")
+        else:
+            for ad in adtags:
+                inside = False
+                for tag in ad["tags"]:
+                    if tag in viewerDemos_list:
+                        inside = True
+                if inside:
+                    outfile.write(ad["name"] + "\n")
+    global GLOBAL_TIMEOUT 
+    GLOBAL_TIMEOUT = False
 
 # Callback when the subscribed topic receives a message ###############################################################
 def on_message_received_adsupload(topic, payload, dup, qos, retain, **kwargs):
@@ -147,22 +154,21 @@ while True:
     # Upload to S3 via mqtt
     print("Contacting S3 via MQTT to upload viewer image")
     awsyy.upload_images(CONST_VIEWER_BUCKET_NAME, CONST_IMAGE_PATH, CONST_CAMERA_CAPTURE)
-
-    # Get returned tags from S3
-    print("Got tags from S3 based on Reckognition")
+    GLOBAL_TIMEOUT = True
+    # time wait for viewer demo
     t.sleep(5)
-    f = open(CONST_IMAGE_DISPLAY_FILE, "r")
-    advert_name = f.readlines()
-
-    print("Displaying advertisement...")
-
-    if os.stat("file").st_size == 0:
-        print("No recognized tags!")
-        mage = display.display(CONST_ADVERT_PATH, "mcdonalds.png")
+    if GLOBAL_TIMEOUT:
+        image = display.display(CONST_ADVERT_PATH, "mcdonalds.png")
         put_viewcount("mcdonalds.png")
         t.sleep(5)
         image.kill()
+        GLOBAL_TIMOUT = False
     else:
+        f = open(CONST_IMAGE_DISPLAY_FILE, "r")
+        
+        print("Displaying advertisement...")
+
+        advert_name = f.readlines()
         # Display the image
         for i in advert_name:
             if i != "": 
